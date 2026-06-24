@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机数测评 | 0 - 750</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        /* 主卡片 */
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        /* 数字显示区 */
+        .number-display {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border-radius: 16px;
+            padding: 40px 20px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .number-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .number-display.rolling::before {
+            left: 100%;
+        }
+
+        #randomNumber {
+            font-size: 72px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-variant-numeric: tabular-nums;
+            min-height: 86px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .range-label {
+            color: #999;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        /* 评价结果区 */
+        .result-box {
+            background: #f8f9ff;
+            border: 2px solid #e8ebff;
+            border-radius: 16px;
+            padding: 24px 20px;
+            margin-bottom: 32px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.4s ease;
+        }
+
+        .result-box.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #resultText {
+            font-size: 18px;
+            color: #333;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .result-placeholder {
+            color: #bbb;
+            font-size: 14px;
+        }
+
+        /* 生成按钮 */
+        .generate-btn {
+            width: 100%;
+            padding: 16px 32px;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            margin-top: 20px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 480px) {
+            .main-card {
+                padding: 32px 24px;
+            }
+            
+            #randomNumber {
+                font-size: 56px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+
+            #resultText {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-card">
+            <h1>高考分数查询</h1>
+            <p class="subtitle">点击按钮查询高考分数</p>
+            
+            <div class="number-display" id="numberDisplay">
+                <div id="randomNumber">?</div>
+                <div class="range-label"></div>
+            </div>
+
+            <!-- 评价结果展示区（已修复：添加了 id="resultText"） -->
+            <div class="result-box" id="resultBox">
+                <span id="resultText" class="result-placeholder">生成随机数后自动显示评价</span>
+            </div>
+            
+            <button class="generate-btn" id="generateBtn" onclick="generateRandom()">
+                点击查询
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let isRolling = false;
+
+        /* ================================================================
+           📝 请在此处修改各档次的评价文案
+           格式说明：
+           - min: 区间最小值（包含）
+           - max: 区间最大值（包含）
+           - text: 对应显示的评价内容，直接修改引号内的文字即可
+           ================================================================ */
+        const levelConfig = [
+             { min: 0,   max: 99,  text: "这分数建议别查了，查出来除了给自己添堵没有任何作用。高考对你来说不是考试，是大型行为艺术。答题卡比脸都干净，阅卷老师看完都怀疑是不是漏印了题。属于教育系统年度慈善项目。" },
+            { min: 100, max: 199, text: "九年义务教育在你身上属于投资失败案例。别人考大学，你考空气。选择题四个答案都能完美避开正确答案，精准得像开了反向外挂。建议以后买彩票，毕竟避开正确答案的天赋不是谁都有。" },
+            { min: 200, max: 299, text: "这已经不是菜了，是纯废。别人复习知识点，你复习怎么把答题卡涂得圆一点。老师讲三年，你听了个响。CPU占用率0%，风扇倒是转得挺响。" },
+            { min: 300, max: 399, text: "天天幻想捡漏本科，现实本科看见你连夜换锁。考完第一句话：我发挥失常。 哥们，你都稳定发挥这么多年了，还搁这儿失常呢？别骗自己了，骗AI都费劲。" },
+            { min: 400, max: 499, text: "最经典的小丑分段。看不起低分，又够不到高分；天天研究志愿，实际上学校研究的是怎么把你刷掉。嘴比分数硬，眼高手低四个字就是给你量身定制的。" },
+            { min: 500, max: 549, text: "最擅长的事情就是做梦。冲985！冲211！ 最后冲进调剂。分数不上不下，人倒是挺能幻想。打开志愿表五分钟，破防两小时。" },
+            { min: 550, max: 599, text: "开始觉得自己是高手了，实际上在真正的学霸眼里就是个经验宝宝。天天发 没考好，其实就是等别人夸。装得跟真的一样，结果连顶尖985的门把手都摸不到。" },
+            { min: 600, max: 649, text: "属于装逼重灾区。一边说自己垃圾，一边生怕别人不知道自己六百多。朋友圈文案《发挥一般》，评论区全是你请来的群众演员。凡尔赛演多了，自己都信了。" },
+            { min: 650, max: 699, text: "别急着狂，大学第一学期微积分就能把你打回原形。现在亲戚夸你是天才，以后挂科的时候他们一样笑得最大声。高考只是新手村，别把自己当最终Boss。" },
+            { min: 700, max: 750, text: "你唯一的问题就是太爱装。别人刷题，你刷存在感。恨不得把分数刻脑门上全国巡展。确实牛，但凡尔赛浓度高得能把整个朋友圈熏吐。别真以为自己能上天，卷王的尽头照样是给导师打工。" }
+        ];
+        /* ================================================================
+           文案修改结束，下方代码无需改动
+           ================================================================ */
+
+        // 根据随机数获取对应评价
+        function getComment(num) {
+            for (let i = 0; i < levelConfig.length; i++) {
+                if (num >= levelConfig[i].min && num <= levelConfig[i].max) {
+                    return levelConfig[i].text;
+                }
+            }
+            return "暂无评价";
+        }
+
+        // 生成随机数
+        function generateRandom() {
+            if (isRolling) return;
+            
+            const btn = document.getElementById('generateBtn');
+            const display = document.getElementById('numberDisplay');
+            const numberEl = document.getElementById('randomNumber');
+            const resultBox = document.getElementById('resultBox');
+            const resultText = document.getElementById('resultText');
+            
+            isRolling = true;
+            btn.disabled = true;
+            display.classList.add('rolling');
+            resultBox.classList.remove('show');
+            
+            // 数字滚动动画
+            let rollCount = 0;
+            const maxRolls = 20;
+            const rollInterval = setInterval(() => {
+                numberEl.textContent = Math.floor(Math.random() * 751);
+                rollCount++;
+                
+                if (rollCount >= maxRolls) {
+                    clearInterval(rollInterval);
+                    // 生成最终结果
+                    const finalNumber = Math.floor(Math.random() * 751);
+                    const comment = getComment(finalNumber);
+                    
+                    numberEl.textContent = finalNumber;
+                    resultText.textContent = comment;
+                    resultText.classList.remove('result-placeholder'); // 移除占位样式
+                    
+                    display.classList.remove('rolling');
+                    resultBox.classList.add('show');
+                    
+                    isRolling = false;
+                    btn.disabled = false;
+                }
+            }, 50);
+        }
+
+        // 按空格键也能生成
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                generateRandom();
+            }
+        });
+    </script>
+</body>
+</html>
